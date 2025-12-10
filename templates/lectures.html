@@ -44,122 +44,129 @@
   <section class="lectures-header">
     <button id="btn-create-post" aria-haspopup="dialog">Create a Post</button>
   </section>
+<section id="posts-list">
 
-  <section id="posts-list">
-    {% for post in posts %}
+  <!-- ========================= -->
+  <!-- INTERACTIVE DEMOS (ONLY ONCE) -->
+  <!-- ========================= -->
 
-    <!-- ========================= -->
-    <!-- QUEUE DEMO (ONLY ONCE)  -->
-    <!-- ========================= -->
-    {% if loop.first %}
-    <article class="post-card">
-      <header>
-        <h3 class="post-title">Queue Interactive Demo</h3>
-        <p class="post-caption">Visualize enqueue and dequeue operations in real time.</p>
-      </header>
+  <!-- QUEUE DEMO -->
+  <article class="post-card">
+    <header>
+      <h3 class="post-title">Queue Interactive Demo</h3>
+      <p class="post-caption">Visualize enqueue and dequeue operations in real time.</p>
+    </header>
 
-      <div style="margin:10px 0;">
-        <input id="queue-input" type="text" placeholder="Value…" />
-        <button id="queue-enqueue">Enqueue</button>
-        <button id="queue-dequeue">Dequeue</button>
-      </div>
+    <div style="margin:10px 0;">
+      <input id="queue-input" type="text" placeholder="Value…" />
+      <button id="queue-enqueue">Enqueue</button>
+      <button id="queue-dequeue">Dequeue</button>
+    </div>
 
-      <div id="queue-display" style="padding:10px;border:1px solid #ccc;"></div>
-    </article>
+    <div id="queue-display" style="padding:10px;border:1px solid #ccc;">
+      <svg id="queue-svg" width="1000" height="400"></svg>
+    </div>
+  </article>
 
-    <!-- STACK DEMO -->
-    <article class="post-card">
-      <header>
-        <h3 class="post-title">Stack Interactive Demo</h3>
-        <p class="post-caption">Push and pop to see how LIFO works.</p>
-      </header>
+  <!-- STACK DEMO -->
+  <article class="post-card">
+    <header>
+      <h3 class="post-title">Stack Interactive Demo</h3>
+      <p class="post-caption">Push and pop to see how LIFO works.</p>
+    </header>
 
-      <div style="margin:10px 0;">
-        <input id="stack-input" type="text" placeholder="Value…" />
-        <button id="stack-push">Push</button>
-        <button id="stack-pop">Pop</button>
-      </div>
+    <div style="margin:10px 0;">
+      <input id="stack-input" type="text" placeholder="Value…" />
+      <button id="stack-push">Push</button>
+      <button id="stack-pop">Pop</button>
+    </div>
 
-      <div id="stack-display" style="padding:10px;border:1px solid #ccc;"></div>
-    </article>
-<!-- TREE DEMO -->
-<article class="post-card">
-  <header>
-    <h3 class="post-title">Tree (General) Interactive Demo</h3>
-    <p class="post-caption">Add children to selected nodes.</p>
-  </header>
+    <div id="stack-display" style="padding:10px;border:1px solid #ccc;">
+      <svg id="stack-svg" width="200" height="400"></svg>
+    </div>
+  </article>
 
-  <div style="margin:10px 0;">
-    <input id="tree-input" type="text" placeholder="Node value…" />
-    <button id="tree-add-root">Add Root</button>
-    <button id="tree-add-child">Add Child</button>
-  </div>
+  <!-- TREE DEMO -->
+  <article class="post-card">
+    <header>
+      <h3 class="post-title">Tree (General) Interactive Demo</h3>
+      <p class="post-caption">Add children to selected nodes.</p>
+    </header>
 
-  <div id="tree-display" style="padding:10px;border:1px solid #ccc;"></div>
-</article>
+    <div style="margin:10px 0;">
+      <input id="tree-input" type="text" placeholder="Node value…" />
+      <button id="tree-add-root">Add Root</button>
+      <button id="tree-add-child">Add Child</button>
+    </div>
 
+    <div id="tree-display" style="padding:10px;border:1px solid #ccc;">
+      <svg id="tree-svg" width="1000" height="600"></svg>
+    </div>
+  </article>
 
-<!-- BINARY TREE DEMO -->
-<article class="post-card">
-  <header>
-    <h3 class="post-title">Binary Tree Demo</h3>
-    <p class="post-caption">Insert nodes left or right.</p>
-  </header>
+  <!-- BINARY TREE DEMO -->
+  <article class="post-card">
+    <header>
+      <h3 class="post-title">Binary Tree Demo</h3>
+      <p class="post-caption">Insert nodes left or right.</p>
+    </header>
 
-  <div style="margin:10px 0;">
-    <input id="bt-input" type="text" placeholder="Value…" />
-    <button id="bt-add-left">Add Left</button>
-    <button id="bt-add-right">Add Right</button>
-    <button id="bt-reset">Reset</button>
-  </div>
+    <div style="margin:10px 0;">
+      <input id="bt-input" type="text" placeholder="Value…" />
+      <button id="bt-add-left">Add Left</button>
+      <button id="bt-add-right">Add Right</button>
+      <button id="bt-reset">Reset</button>
+    </div>
 
-  <div id="bt-display" style="padding:10px;border:1px solid #ccc;"></div>
-</article>
+    <div id="bt-display" style="padding:10px;border:1px solid #ccc;">
+      <svg id="bt-svg" width="1000" height="600"></svg>
+    </div>
+  </article>
 
+  <!-- BST DEMO -->
+  <article class="post-card">
+    <header>
+      <h3 class="post-title">BST Demo</h3>
+      <p class="post-caption">Insert values into a Binary Search Tree.</p>
+    </header>
 
-<!-- BST DEMO -->
-<article class="post-card">
-  <header>
-    <h3 class="post-title">BST Demo</h3>
-    <p class="post-caption">Insert values into a Binary Search Tree.</p>
-  </header>
+    <div style="margin:10px 0;">
+      <input id="bst-input" type="text" placeholder="Insert value…" />
+      <button id="bst-insert">Insert</button>
+      <button id="bst-reset">Reset</button>
+    </div>
 
-  <div style="margin:10px 0;">
-    <input id="bst-input" type="text" placeholder="Insert value…" />
-    <button id="bst-insert">Insert</button>
-    <button id="bst-reset">Reset</button>
-  </div>
+    <div id="bst-display" style="padding:10px;border:1px solid #ccc;">
+      <svg id="bst-svg" width="1000" height="600"></svg>
+    </div>
+  </article>
 
-  <div id="bst-display" style="padding:10px;border:1px solid #ccc;"></div>
-</article>
-
-    {% endif %}
-
-    <!-- ========================= -->
-    <!-- REGULAR POSTS            -->
-    <!-- ========================= -->
+  <!-- ========================= -->
+  <!-- REGULAR POSTS             -->
+  <!-- ========================= -->
+  {% for post in posts %}
     {% if post.id > 0 %}
-    <article class="post-card" data-id="{{ post.id }}">
-      <div class="three-dots" data-id="{{ post.id }}">⋯</div>
-      <div class="dropdown-menu" id="menu-{{ post.id }}">
-        <button class="edit-post" data-id="{{ post.id }}" data-title="{{ post.title }}" data-caption="{{ post.caption }}" data-author="{{ post.author }}">✏️ Edit</button>
-        <button class="delete-post" onclick="deletePost({{ post.id }})">🗑️ Delete</button>
-      </div>
+      <article class="post-card" data-id="{{ post.id }}">
+        <div class="three-dots" data-id="{{ post.id }}">⋯</div>
+        <div class="dropdown-menu" id="menu-{{ post.id }}">
+          <button class="edit-post" data-id="{{ post.id }}" data-title="{{ post.title }}" data-caption="{{ post.caption }}" data-author="{{ post.author }}">✏️ Edit</button>
+          <button class="delete-post" onclick="deletePost({{ post.id }})">🗑️ Delete</button>
+        </div>
 
-      <header>
-        <h3 class="post-title">{{ post.title }}</h3>
-        <p class="post-caption">{{ post.caption }}</p> <p class="post-caption preserve">{{ post.caption }}</p>
-      </header>
-      <footer>
-        <button class="vote-up" data-id="{{ post.id }}">▲ <span class="count">{{ post.up }}</span></button>
-        <button class="vote-down" data-id="{{ post.id }}">▼ <span class="count">{{ post.down }}</span></button>
-      </footer>
-    </article>
+        <header>
+          <h3 class="post-title">{{ post.title }}</h3>
+          <p class="post-caption preserve">{{ post.caption }}</p>
+        </header>
+        <footer>
+          <button class="vote-up" data-id="{{ post.id }}">▲ <span class="count">{{ post.up }}</span></button>
+          <button class="vote-down" data-id="{{ post.id }}">▼ <span class="count">{{ post.down }}</span></button>
+        </footer>
+      </article>
     {% endif %}
+  {% endfor %}
 
-    {% endfor %}
-  </section>
-</main>
+</section>
+
 
 <!-- ===================================== -->
 <!-- POST MODAL (CREATE + EDIT)            -->
@@ -213,36 +220,6 @@ const postIdInput = document.getElementById('post-id');
 const postTitleInput = document.getElementById('post-title-input');
 const postCaptionInput = document.getElementById('post-caption-input');
 const postAuthorInput = document.getElementById('post-author-input');
-
-/* Queue + Stack refs */
-const queueInput = document.getElementById("queue-input");
-const queueEnqueue = document.getElementById("queue-enqueue");
-const queueDequeue = document.getElementById("queue-dequeue");
-const queueDisplay = document.getElementById("queue-display");
-
-const stackInput = document.getElementById("stack-input");
-const stackPush = document.getElementById("stack-push");
-const stackPop = document.getElementById("stack-pop");
-const stackDisplay = document.getElementById("stack-display");
-
-/* Tree refs */
-const treeInput = document.getElementById("tree-input");
-const treeAddRoot = document.getElementById("tree-add-root");
-const treeAddChild = document.getElementById("tree-add-child");
-const treeDisplay = document.getElementById("tree-display");
-
-/* Binary Tree refs */
-const btInput = document.getElementById("bt-input");
-const btAddLeft = document.getElementById("bt-add-left");
-const btAddRight = document.getElementById("bt-add-right");
-const btReset = document.getElementById("bt-reset");
-const btDisplay = document.getElementById("bt-display");
-
-/* BST refs */
-const bstInput = document.getElementById("bst-input");
-const bstInsert = document.getElementById("bst-insert");
-const bstReset = document.getElementById("bst-reset");
-const bstDisplay = document.getElementById("bst-display");
 
 /* ----------------------------- */
 /* Modal Actions                 */
@@ -302,146 +279,6 @@ document.querySelectorAll('.edit-post').forEach(btn => {
   });
 });
 
-/* ----------------------------- */
-/* Backend API wrapper          */
-/* ----------------------------- */
-async function api(url, data = {}) {
-  let res = await fetch(url, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(data)
-  });
-  return res.json();
-}
-
-/* ----------------------------- */
-/* QUEUE DEMO FIXED             */
-/* ----------------------------- */
-queueEnqueue.onclick = async () => {
-  let out = await api("/queue/enqueue", { value: queueInput.value });
-  queueDisplay.innerHTML = out.queue.join(" → ");
-};
-
-queueDequeue.onclick = async () => {
-  let out = await api("/queue/dequeue");
-  queueDisplay.innerHTML = out.queue.join(" → ");
-};
-
-/* ----------------------------- */
-/* STACK DEMO FIXED             */
-/* ----------------------------- */
-stackPush.onclick = async () => {
-  let out = await api("/stack/push", { value: stackInput.value });
-  stackDisplay.innerHTML = out.stack.slice().reverse().join("<br>");
-};
-
-stackPop.onclick = async () => {
-  let out = await api("/stack/pop");
-  stackDisplay.innerHTML = out.stack.slice().reverse().join("<br>");
-};
-    /* TREE */
-treeAddRoot.onclick = async () => {
-  let out = await api("/tree/add_root", { value: treeInput.value });
-  treeDisplay.innerHTML = out.render;
-};
-treeAddChild.onclick = async () => {
-  let out = await api("/tree/add_child", { value: treeInput.value });
-  treeDisplay.innerHTML = out.render;
-};
-
-
-/* BINARY TREE */
-btAddLeft.onclick = async () => {
-  let out = await api("/bt/add_left", { value: btInput.value });
-  btDisplay.innerHTML = out.render;
-};
-btAddRight.onclick = async () => {
-  let out = await api("/bt/add_right", { value: btInput.value });
-  btDisplay.innerHTML = out.render;
-};
-btReset.onclick = async () => {
-  let out = await api("/bt/reset");
-  btDisplay.innerHTML = out.render;
-};
-
-
-/* BST */
-bstInsert.onclick = async () => {
-  let out = await api("/bst/insert", { value: bstInput.value });
-  bstDisplay.innerHTML = out.render;
-};
-bstReset.onclick = async () => {
-  let out = await api("/bst/reset");
-  bstDisplay.innerHTML = out.render;
-};
-let deleteQueue = null;
-
-function deletePost(id) {
-  // 1. Show snackbar
-  document.getElementById("snackbar").style.display = "flex";
-
-  // 2. Push delete into the queue (5s delay)
-  deleteQueue = setTimeout(() => {
-      fetch(`/delete/${id}`, { method: "POST" })
-        .then(() => location.reload());
-  }, 5000);
-}
-
-function cancelDelete() {
-  clearTimeout(deleteQueue);
-  document.getElementById("snackbar").style.display = "none";
-}
-
-    // GRID BACKGROUND EFFECT
-document.addEventListener("DOMContentLoaded", () => {
-  const grid = document.getElementById("bg-grid");
-  const cellSize = 30;
-
-  function createGrid() {
-    grid.innerHTML = "";
-    const cols = Math.ceil(window.innerWidth / cellSize) + 2;
-    const rows = Math.ceil(window.innerHeight / cellSize) + 2;
-
-    grid.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
-    grid.style.width = `${cols * cellSize}px`;
-    grid.style.height = `${rows * cellSize}px`;
-
-    const total = cols * rows;
-    for (let i = 0; i < total; i++) {
-      const cell = document.createElement("div");
-      cell.classList.add("grid-cell");
-      grid.appendChild(cell);
-    }
-
-    return { cols, rows, cells: Array.from(grid.children) };
-  }
-
-  let { cols, rows, cells } = createGrid();
-
-  function pulseCell(col, row) {
-    if (col < 0 || row < 0 || col >= cols || row >= rows) return;
-    const idx = row * cols + col;
-    const cell = cells[idx];
-    if (!cell) return;
-    cell.classList.add("active", "pulse");
-    setTimeout(() => cell.classList.remove("active"), 120);
-    setTimeout(() => cell.classList.remove("pulse"), 400);
-  }
-
-  window.addEventListener("mousemove", e => {
-    const rect = grid.getBoundingClientRect();
-    const col = Math.floor((e.clientX - rect.left) / cellSize);
-    const row = Math.floor((e.clientY - rect.top) / cellSize);
-
-    for (let dx = -1; dx <= 1; dx++)
-      for (let dy = -1; dy <= 1; dy++)
-        pulseCell(col + dx, row + dy);
-  });
-
-  window.addEventListener("resize", () => {
-    ({ cols, rows, cells } = createGrid());
-  });
-});
 
 </script>
 

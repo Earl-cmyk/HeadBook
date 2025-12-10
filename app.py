@@ -1,6 +1,8 @@
 from flask import Flask, request, render_template, redirect, url_for, g, jsonify
 import sqlite3
 import os
+import threading
+import time
 import uuid
 from markupsafe import escape
 
@@ -317,6 +319,17 @@ def delete(id):
     db.commit()
     return jsonify(status="deleted"), 200
 
+def delayed_delete(post_id, delay=5):
+    time.sleep(delay)
+    db = get_db()
+    db.execute("DELETE FROM posts WHERE id=?", (post_id,))
+    db.commit()
+
+@app.route("/delete/<int:id>", methods=["POST"])
+def delete_post(post_id):
+    threading.Thread(target=delayed_delete, args=(post_id,5)).start()
+    return jsonify({"ok": True})
+
 # Edit should accept the same form fields used by your modal (title, caption, author)
 @app.route("/edit/<int:id>", methods=["POST"])
 def edit(id):
@@ -339,197 +352,169 @@ def edit(id):
 @app.route("/collaborators")
 def collaborators_page():
     return render_template("collaborators.html")
-
-# ---------------------------
-# IN-MEM DATA STRUCTURES FOR INTERACTIVES (simple JS APIs)
-# ---------------------------
+# ----------------------
+# In-memory storage
+# ----------------------
 queue = []
 stack = []
+tree_root = None
+bst_root = None
 
-tree = {"root": None}
-bt = {"root": None}
-bst = {"root": None}
+# ----------------------
+# Tree / BST classes
+# ----------------------
+class TreeNode:
+    def __init__(self, val):
+        self.val = val
+        self.left = None
+        self.right = None
 
-def new_id():
-    return str(uuid.uuid4())
-
-# Small helper: render a general tree to nested UL for direct assignment to innerHTML
-def render_tree_html(node):
-    if not node:
+# ----------------------
+# Helpers
+# ----------------------
+def escape_text(text):
+    if text is None:
         return ""
-    # escape to avoid injection from client-provided values
-    label = escape(node.get("value", ""))
-    children = node.get("children", [])
-    if not children:
-        return f"<div data-id='{node.get('id')}' class='tree-node'>{label}</div>"
-    inner = "".join(render_tree_html(c) for c in children)
-    return f"<div class='tree-node' data-id='{node.get('id')}'>{label}<div class='tree-children' style='margin-left:16px'>{inner}</div></div>"
+    return (str(text)
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
+            .replace("'", "&#39;"))
 
-# QUEUE API
-@app.post("/queue/enqueue")
-def q_enqueue():
-    value = request.json.get("value")
-    queue.append(value)
-    return jsonify(queue=queue)
+# ----------------------
+# SVG renderers
+# ----------------------
+def render_queue_svg():
+    width = max(300, 120 * max(1, len(queue)))
+    height = 120
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">']
+    for i, val in enumerate(queue):
+        x = 20 + i * 120
+        parts.append(f'<rect x="{x}" y="30" width="100" height="60" rx="8" fill="#4cc9ff" stroke="#fff"/>')
+        parts.append(f'<text x="{x+50}" y="65" font-size="18" text-anchor="middle" fill="#000">{escape_text(val)}</text>')
+    parts.append('</svg>')
+    return "".join(parts)
 
-@app.post("/queue/dequeue")
-def q_dequeue():
+def render_stack_svg():
+    width = 200
+    height = max(120, 80 * len(stack) + 20)
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">']
+    for i, val in enumerate(reversed(stack)):
+        y = 20 + i * 80
+        parts.append(f'<rect x="40" y="{y}" width="120" height="60" rx="8" fill="#90f1a9" stroke="#fff"/>')
+        parts.append(f'<text x="100" y="{y+36}" font-size="18" text-anchor="middle" fill="#000">{escape_text(val)}</text>')
+    parts.append('</svg>')
+    return "".join(parts)
+
+def render_generic_tree_svg(root):
+    if not root:
+        return '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="200"></svg>'
+
+    width, height = 1000, 500
+    parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">']
+
+    def traverse(node, x, y, level):
+        if not node:
+            return
+        offset = 200 / level
+        if node.left:
+            parts.append(f'<line x1="{x}" y1="{y}" x2="{x-offset*2}" y2="{y+80}" stroke="#fff"/>')
+        if node.right:
+            parts.append(f'<line x1="{x}" y1="{y}" x2="{x+offset*2}" y2="{y+80}" stroke="#fff"/>')
+        parts.append(f'<circle cx="{x}" cy="{y}" r="25" fill="#f8c537" stroke="#fff"/>')
+        parts.append(f'<text x="{x}" y="{y+5}" font-size="20" text-anchor="middle" fill="#000">{escape_text(node.val)}</text>')
+        traverse(node.left, x-offset*2, y+80, level+1)
+        traverse(node.right, x+offset*2, y+80, level+1)
+
+    traverse(root, 500, 40, 1)
+    parts.append('</svg>')
+    return "".join(parts)
+
+# ----------------------
+# BST helpers
+# ----------------------
+def bst_insert(node, val):
+    if not node:
+        return TreeNode(val)
+    if val < node.val:
+        node.left = bst_insert(node.left, val)
+    else:
+        node.right = bst_insert(node.right, val)
+    return node
+
+# ----------------------
+# Routes
+# ----------------------
+# Queue endpoints
+@app.route("/queue/enqueue", methods=["POST"])
+def queue_enqueue():
+    val = request.json.get("value", "").strip()
+    if not val:
+        return jsonify({"ok": False})
+    queue.append(val)
+    return jsonify({"ok": True, "svg": render_queue_svg()})
+
+@app.route("/queue/dequeue", methods=["POST"])
+def queue_dequeue():
     if queue:
         queue.pop(0)
-    return jsonify(queue=queue)
+    return jsonify({"ok": True, "svg": render_queue_svg()})
 
-# STACK API
-@app.post("/stack/push")
-def s_push():
-    value = request.json.get("value")
-    stack.append(value)
-    return jsonify(stack=stack)
+# Stack endpoints
+@app.route("/stack/push", methods=["POST"])
+def stack_push():
+    val = request.json.get("value", "").strip()
+    if not val:
+        return jsonify({"ok": False})
+    stack.append(val)
+    return jsonify({"ok": True, "svg": render_stack_svg()})
 
-@app.post("/stack/pop")
-def s_pop():
+@app.route("/stack/pop", methods=["POST"])
+def stack_pop():
     if stack:
         stack.pop()
-    return jsonify(stack=stack)
+    return jsonify({"ok": True, "svg": render_stack_svg()})
 
-# GENERAL TREE API
-@app.post("/tree/add_root")
-def t_root():
-    value = request.json.get("value")
-    tree["root"] = {"id": new_id(), "value": value, "children": []}
-    return jsonify(render=render_tree_html(tree["root"]))
+# Generic tree endpoints
+@app.route("/tree/insert", methods=["POST"])
+def tree_insert_route():
+    global tree_root
+    val = request.json.get("value", "").strip()
+    if not val:
+        return jsonify({"ok": False})
 
-@app.post("/tree/add_child")
-def t_child():
-    # front-end should pass "target" id; if not provided, do nothing
-    target = request.json.get("target")
-    value  = request.json.get("value")
-
-    def add(node):
-        if node["id"] == target:
-            node["children"].append({"id": new_id(), "value": value, "children": []})
-            return True
-        for child in node["children"]:
-            if add(child):
-                return True
-        return False
-
-    if tree["root"] and target:
-        add(tree["root"])
-
-    return jsonify(render=render_tree_html(tree["root"]) if tree["root"] else "")
-
-# BINARY TREE API
-def render_bt_html(node):
-    if not node:
-        return ""
-    val = escape(str(node.get("value", "")))
-    left_html = render_bt_html(node.get("left"))
-    right_html = render_bt_html(node.get("right"))
-    # simple visual: node value followed by child container
-    return f"<div class='bt-node' data-id='{node.get('id')}' style='margin:6px 0;'><div class='bt-val'>{val}</div><div class='bt-children' style='margin-left:16px'>{left_html}{right_html}</div></div>"
-
-def find_node_by_id(node, target):
-    if not node:
-        return None
-    if node.get("id") == target:
-        return node
-    left = find_node_by_id(node.get("left"), target)
-    if left:
-        return left
-    return find_node_by_id(node.get("right"), target)
-
-@app.post("/bt/add_left")
-def bt_left():
-    parent = request.json.get("parent")  # optional
-    value = request.json.get("value")
-
-    if not bt["root"]:
-        bt["root"] = {"id": new_id(), "value": value, "left": None, "right": None}
+    new_node = TreeNode(val)
+    if not tree_root:
+        tree_root = new_node
     else:
-        # if parent provided, find and attach; otherwise attach to root's left if empty
-        if parent:
-            node = find_node_by_id(bt["root"], parent)
-            if node and node.get("left") is None:
-                node["left"] = {"id": new_id(), "value": value, "left": None, "right": None}
-        else:
-            # attach to root.left if empty, else try to attach to first available left-most node
-            if bt["root"].get("left") is None:
-                bt["root"]["left"] = {"id": new_id(), "value": value, "left": None, "right": None}
-            else:
-                # fallback: attach as left-most available
-                cur = bt["root"]
-                while cur.get("left"):
-                    cur = cur["left"]
-                cur["left"] = {"id": new_id(), "value": value, "left": None, "right": None}
+        # level order insertion
+        q = [tree_root]
+        while q:
+            node = q.pop(0)
+            if not node.left:
+                node.left = new_node
+                break
+            elif not node.right:
+                node.right = new_node
+                break
+            q.append(node.left)
+            q.append(node.right)
+    return jsonify({"ok": True, "svg": render_generic_tree_svg(tree_root)})
 
-    return jsonify(render=render_bt_html(bt["root"]))
-
-@app.post("/bt/add_right")
-def bt_right():
-    parent = request.json.get("parent")  # optional
-    value = request.json.get("value")
-
-    if not bt["root"]:
-        bt["root"] = {"id": new_id(), "value": value, "left": None, "right": None}
-    else:
-        if parent:
-            node = find_node_by_id(bt["root"], parent)
-            if node and node.get("right") is None:
-                node["right"] = {"id": new_id(), "value": value, "left": None, "right": None}
-        else:
-            if bt["root"].get("right") is None:
-                bt["root"]["right"] = {"id": new_id(), "value": value, "left": None, "right": None}
-            else:
-                cur = bt["root"]
-                while cur.get("right"):
-                    cur = cur["right"]
-                cur["right"] = {"id": new_id(), "value": value, "left": None, "right": None}
-
-    return jsonify(render=render_bt_html(bt["root"]))
-
-@app.post("/bt/reset")
-def bt_reset():
-    bt["root"] = None
-    return jsonify(render="")
-
-# BST API
-def render_bst_html(node):
-    if not node:
-        return ""
-    val = escape(str(node.get("value", "")))
-    left = render_bst_html(node.get("left"))
-    right = render_bst_html(node.get("right"))
-    # represent BST using nested lists for clarity
-    inner = ""
-    if left or right:
-        inner = f"<div style='margin-left:16px'>{left}{right}</div>"
-    return f"<div class='bst-node' data-value='{val}' style='margin:6px 0;'><div class='bst-val'>{val}</div>{inner}</div>"
-
-@app.post("/bst/insert")
-def bst_insert():
-    raw = request.json.get("value")
+# BST endpoints
+@app.route("/bst/insert", methods=["POST"])
+def bst_insert_route():
+    global bst_root
+    val = request.json.get("value", "").strip()
+    if not val:
+        return jsonify({"ok": False})
     try:
-        value = int(raw)
-    except Exception:
-        # ignore invalid inserts
-        return jsonify(error="value must be integer"), 400
-
-    def insert(node, v):
-        if not node:
-            return {"value": v, "left": None, "right": None}
-        if v < node["value"]:
-            node["left"] = insert(node["left"], v)
-        else:
-            node["right"] = insert(node["right"], v)
-        return node
-
-    bst["root"] = insert(bst["root"], value)
-    return jsonify(render=render_bst_html(bst["root"]))
-
-@app.post("/bst/reset")
-def bst_reset():
-    bst["root"] = None
-    return jsonify(render="")
+        num = int(val)
+    except:
+        return jsonify({"ok": False, "error": "numeric only"})
+    bst_root = bst_insert(bst_root, num)
+    return jsonify({"ok": True, "svg": render_generic_tree_svg(bst_root)})
 
 # RUN
 if __name__ == "__main__":

@@ -47,41 +47,44 @@
     <button id="btn-frontend-developer" class="collab-btn">Frontend Developer</button>
     <button id="btn-backend-developer" class="collab-btn">Backend Developer</button>
     <button id="btn-db-engineer" class="collab-btn">DB Engineer</button>
-    <button id="btn-graphics-designer" class="collab-btn">Graphics Designer</button>
     <button id="btn-manager" class="collab-btn">Manager</button>
     <button id="btn-tester" class="collab-btn">Tester</button>
   </section>
 
   <!-- Collaborator Modals -->
-  <div id="collab-modals">
-    {% set collaborators = [
-      {% set collaborators = [
-      {'id':'lead-engineer','role':'Lead Engineer','name':'Earl Jhon D. Dimla','student_id':'2024-03779-MN-0','github':'Earl-cmyk','avatar':'earl.jpg'},
-      {'id':'senior-developer','role':'Frontend Developer','name':'Baluyot, Franzen D.','student_id':'2024-00000-MN-5','github':'K4thars15','avatar':'franzen.jpg'},
-      {'id':'junior-developer','role':'Backend Developer','name':'Geraldin T. Tacleon','student_id':'2024-03174-MN-0','github':'hyarishin','avatar':'taki.jpg'},
-      {'id':'db-engineer','role':'DB Engineer','name':'Norberto P.','student_id':'2024-05229-MN-0','github':'dos1121','avatar':bert.jpg'},
-      {'id':'manager','role':'Manager','name':'Placeholder 6','student_id':'2024-00000-MN-6','github':'placeholder6','avatar':'placeholder6.jpg'},
-      {'id':'tester','role':'Tester','name':'Brent Malik Liongson','student _id':'2024-00668-MN-0','github':'Asphyro','avatar':'brent.jpg'}
-    ] %}
-    ] %}
-    {% for c in collaborators %}
-    <div id="card-{{ c.id }}" class="collab-card modal" aria-hidden="true">
-      <div class="modal-content">
-        <img
-          src="{{ url_for('static', filename='img/' ~ (c.avatar if c.avatar else 'avatar_placeholder.jpg')) }}"
-          alt="{{ c.name }} Avatar"
-          class="avatar"
-        />
-        <h3>{{ c.role }}</h3>
-        <p><strong>Name:</strong> {{ c.name }}</p>
-        <p><strong>Student ID:</strong> {{ c.student_id }}</p>
-        <p><strong>GitHub:</strong> <a href="https://github.com/{{ c.github }}" target="_blank">{{ c.github }}</a></p>
-        <button class="copy-btn" data-username="{{ c.github }}">Copy GitHub Username</button>
-        <button class="close-btn">Close</button>
-      </div>
+<!-- Collaborator Modals -->
+<div id="collab-modals">
+  {% set collaborators = [
+    {'id':'lead-engineer','role':'Lead Engineer','name':'Earl Jhon D. Dimla','student_id':'2024-03779-MN-0','github':'Earl-cmyk','avatar':'earl.jpg'},
+    {'id':'frontend-developer','role':'Frontend Developer','name':'Baluyot, Franzen D.','student_id':'2024-00000-MN-5','github':'K4thars15','avatar':'franzen.jpg'},
+    {'id':'backend-developer','role':'Backend Developer','name':'Geraldin T. Tacleon','student_id':'2024-03174-MN-0','github':'hyarishin','avatar':'taki.jpg'},
+    {'id':'db-engineer','role':'DB Engineer','name':'Norberto P.','student_id':'2024-05229-MN-0','github':'dos1121','avatar':'bert.jpg'},
+    {'id':'manager','role':'Manager','name':'Placeholder 6','student_id':'2024-00000-MN-6','github':'placeholder6','avatar':'placeholder6.jpg'},
+    {'id':'tester','role':'Tester','name':'Brent Malik Liongson','student_id':'2024-00668-MN-0','github':'Asphyro','avatar':'brent.jpg'}
+  ] %}
+
+  {% for c in collaborators %}
+  <div id="card-{{ c.id }}" class="collab-card modal" aria-hidden="true">
+    <div class="modal-content">
+      <img
+        src="{{ url_for('static', filename='img/' ~ (c.avatar if c.avatar else 'avatar_placeholder.jpg')) }}"
+        alt="{{ c.name }} Avatar"
+        class="avatar"
+      />
+      <h3>{{ c.role }}</h3>
+      <p><strong>Name:</strong> {{ c.name }}</p>
+      <p><strong>Student ID:</strong> {{ c.student_id }}</p>
+      <p><strong>GitHub:</strong>
+        <a href="https://github.com/{{ c.github }}" target="_blank">{{ c.github }}</a>
+      </p>
+
+      <button class="copy-btn" data-username="{{ c.github }}">Copy GitHub Username</button>
+      <button class="close-btn">Close</button>
     </div>
-    {% endfor %}
   </div>
+  {% endfor %}
+</div>
+
 </main>
 {% endblock %}
 
@@ -89,7 +92,7 @@
 <script>
   const buttons = [
     'lead-engineer','frontend-developer','backend-developer',
-    'db-engineer','graphics-designer','manager','tester'
+    'db-engineer','manager','tester'
   ];
 
   buttons.forEach(id => {
