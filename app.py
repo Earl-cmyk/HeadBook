@@ -33,7 +33,8 @@ def md_to_safe_html(md_text: str) -> str:
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
-DATABASE = "/var/data/feed.db"
+DATABASE = os.environ.get("DATABASE_PATH", "/var/data/app.db")
+
 
 
 # -------------------------
@@ -274,6 +275,7 @@ class BST:
 # -------------------------
 def get_db():
     if "db" not in g:
+        os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
         db = sqlite3.connect(DATABASE, timeout=30, check_same_thread=False)
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA journal_mode=WAL;")
@@ -283,6 +285,7 @@ def get_db():
     return g.db
 
 
+
 @app.teardown_appcontext
 def close_db(error=None):
     db = g.pop('db', None)
@@ -290,46 +293,76 @@ def close_db(error=None):
         db.close()
 
 def init_db():
-    db_dir = os.path.dirname(DATABASE)
-    if db_dir:
-        os.makedirs(db_dir, exist_ok=True)
+    os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
 
     conn = sqlite3.connect(DATABASE)
     cur = conn.cursor()
+
+    # PRAGMAS
     cur.execute("PRAGMA journal_mode=WAL;")
-    cur.execute("PRAGMA synchronous=NORMAL;")
     cur.execute("PRAGMA foreign_keys=ON;")
 
     # -------------------------
-    # Base schema
+    # BASE SCHEMA
     # -------------------------
-    # Always use CREATE TABLE IF NOT EXISTS
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        email TEXT UNIQUE,
-        password TEXT,
-        oauth_provider TEXT,
-        oauth_id TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    """)
+    if os.path.exists("schema.sql"):
+        with open("schema.sql") as f:
+            cur.executescript(f.read())
+    else:
+        # Fallback minimal schema
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE,
+            password TEXT,
+            oauth_provider TEXT,
+            oauth_id TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS posts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            title TEXT NOT NULL,
+            caption TEXT NOT NULL,
+            post_type TEXT NOT NULL DEFAULT 'text',
+            up INTEGER NOT NULL DEFAULT 0,
+            down INTEGER NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        """)
+
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id INTEGER NOT NULL,
+            user_id INTEGER,
+            comment TEXT NOT NULL,
+            parent_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (post_id) REFERENCES posts(id),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        """)
 
     # -------------------------
-    # Migrations
+    # MIGRATIONS
     # -------------------------
 
     # comments.parent_id
     cur.execute("PRAGMA table_info(comments)")
     cols = [r[1] for r in cur.fetchall()]
-    if 'parent_id' not in cols:
+    if "parent_id" not in cols:
         try:
             cur.execute("ALTER TABLE comments ADD COLUMN parent_id INTEGER")
         except Exception:
             pass
 
-    # attachments table
+    # attachments
     cur.execute("""
     CREATE TABLE IF NOT EXISTS attachments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -341,24 +374,17 @@ def init_db():
     );
     """)
 
-    # posts.user_id backfill
+    # posts.user_id
     cur.execute("PRAGMA table_info(posts)")
     post_cols = [r[1] for r in cur.fetchall()]
-    if 'user_id' not in post_cols:
+    if "user_id" not in post_cols:
         try:
             cur.execute("ALTER TABLE posts ADD COLUMN user_id INTEGER")
-            cur.execute("""
-                UPDATE posts
-                SET user_id = (
-                    SELECT id FROM users WHERE users.username = posts.author
-                )
-                WHERE user_id IS NULL
-            """)
         except Exception:
             pass
 
     # -------------------------
-    # Indexes (PERFORMANCE)
+    # INDEXES
     # -------------------------
     cur.execute("CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id)")
@@ -366,7 +392,6 @@ def init_db():
 
     conn.commit()
     conn.close()
-
 
 # -------------------------
 # FEED / SEARCH LOGIC
