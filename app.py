@@ -14,13 +14,26 @@ ALLOWED_TAGS = [
     "ul","li","hr","code","pre","blockquote"
 ]
 
-def md_to_safe_html(md):
-    html = markdown.markdown(md or "", extensions=["fenced_code"])
-    return bleach.clean(html, tags=ALLOWED_TAGS, strip=True)
+def md_to_safe_html(md_text: str) -> str:
+    return bleach.clean(
+        markdown.markdown(
+            md_text or "",
+            extensions=["fenced_code", "tables"]
+        ),
+        tags=[
+            "h1","h2","h3",
+            "p","strong","em",
+            "ul","ol","li",
+            "hr",
+            "code","pre","blockquote"
+        ],
+        strip=True
+    )
+
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
-DATABASE = "feed.db"
+DATABASE = "/var/data/feed.db"
 
 
 # -------------------------
@@ -261,103 +274,98 @@ class BST:
 # -------------------------
 def get_db():
     if "db" not in g:
-        # enable check_same_thread False for dev single-process
-        g.db = sqlite3.connect(DATABASE, check_same_thread=False)
-        g.db.row_factory = sqlite3.Row
+        db = sqlite3.connect(DATABASE, timeout=30, check_same_thread=False)
+        db.row_factory = sqlite3.Row
+        db.execute("PRAGMA journal_mode=WAL;")
+        db.execute("PRAGMA synchronous=NORMAL;")
+        db.execute("PRAGMA foreign_keys=ON;")
+        g.db = db
     return g.db
 
 
 @app.teardown_appcontext
-def close_db(exception):
-    db = g.pop("db", None)
-    if db:
+def close_db(error=None):
+    db = g.pop('db', None)
+    if db is not None:
         db.close()
 
-
 def init_db():
-    if not os.path.exists(DATABASE):
-        conn = sqlite3.connect(DATABASE)
-        if not os.path.exists("schema.sql"):
-            # Avoid crashing if schema.sql missing; create minimal schema for posts
-            conn.execute("""
-            CREATE TABLE posts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT,
-                caption TEXT,
-                author TEXT,
-                post_type TEXT,
-                up INTEGER DEFAULT 0,
-                down INTEGER DEFAULT 0
-            );
+    db_dir = os.path.dirname(DATABASE)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+
+    conn = sqlite3.connect(DATABASE)
+    cur = conn.cursor()
+    cur.execute("PRAGMA journal_mode=WAL;")
+    cur.execute("PRAGMA synchronous=NORMAL;")
+    cur.execute("PRAGMA foreign_keys=ON;")
+
+    # -------------------------
+    # Base schema
+    # -------------------------
+    # Always use CREATE TABLE IF NOT EXISTS
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE,
+        password TEXT,
+        oauth_provider TEXT,
+        oauth_id TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+
+    # -------------------------
+    # Migrations
+    # -------------------------
+
+    # comments.parent_id
+    cur.execute("PRAGMA table_info(comments)")
+    cols = [r[1] for r in cur.fetchall()]
+    if 'parent_id' not in cols:
+        try:
+            cur.execute("ALTER TABLE comments ADD COLUMN parent_id INTEGER")
+        except Exception:
+            pass
+
+    # attachments table
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS attachments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        post_id INTEGER NOT NULL,
+        filename TEXT NOT NULL,
+        path TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(post_id) REFERENCES posts(id) ON DELETE CASCADE
+    );
+    """)
+
+    # posts.user_id backfill
+    cur.execute("PRAGMA table_info(posts)")
+    post_cols = [r[1] for r in cur.fetchall()]
+    if 'user_id' not in post_cols:
+        try:
+            cur.execute("ALTER TABLE posts ADD COLUMN user_id INTEGER")
+            cur.execute("""
+                UPDATE posts
+                SET user_id = (
+                    SELECT id FROM users WHERE users.username = posts.author
+                )
+                WHERE user_id IS NULL
             """)
-        else:
-            with open("schema.sql", "r") as f:
-                conn.executescript(f.read())
-        conn.commit()
-        conn.close()
+        except Exception:
+            pass
 
-    # Run simple migration: ensure comments table has parent_id for nested threads
-    try:
-        conn = sqlite3.connect(DATABASE)
-        cur = conn.cursor()
-        cur.execute("PRAGMA table_info(comments)")
-        cols = [r[1] for r in cur.fetchall()]
-        if 'parent_id' not in cols:
-            try:
-                cur.execute("ALTER TABLE comments ADD COLUMN parent_id INTEGER")
-                conn.commit()
-            except Exception:
-                # ignore if cannot alter (older sqlite versions), app will still work without nested threads storage
-                pass
-        # ensure attachments table exists
-        cur.execute("PRAGMA table_info(attachments)")
-        cols = [r[1] for r in cur.fetchall()]
-        if not cols:
-            try:
-                cur.execute('''
-                CREATE TABLE IF NOT EXISTS attachments (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    post_id INTEGER NOT NULL,
-                    filename TEXT NOT NULL,
-                    path TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY(post_id) REFERENCES posts(id)
-                );
-                ''')
-                conn.commit()
-            except Exception:
-                pass
-        conn.close()
-    except Exception:
-        pass
+    # -------------------------
+    # Indexes (PERFORMANCE)
+    # -------------------------
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_posts_title ON posts(title)")
 
-    # Migration: ensure posts have user_id column linking to users table
-    try:
-        conn = sqlite3.connect(DATABASE)
-        cur = conn.cursor()
-        cur.execute("PRAGMA table_info(posts)")
-        post_cols = [r[1] for r in cur.fetchall()]
-        if 'user_id' not in post_cols:
-            try:
-                cur.execute("ALTER TABLE posts ADD COLUMN user_id INTEGER")
-                # Attempt to backfill user_id from posts.author matching users.username
-                try:
-                    cur.execute("SELECT id, username FROM users")
-                    users = cur.fetchall()
-                    for u in users:
-                        uid = u[0]
-                        uname = u[1]
-                        cur.execute("UPDATE posts SET user_id=? WHERE author=?", (uid, uname))
-                    conn.commit()
-                except Exception:
-                    # best-effort backfill; ignore errors
-                    pass
-            except Exception:
-                # ignore if cannot alter (older sqlite versions)
-                pass
-        conn.close()
-    except Exception:
-        pass
+    conn.commit()
+    conn.close()
 
 
 # -------------------------
@@ -365,62 +373,58 @@ def init_db():
 # -------------------------
 def get_feed_stack():
     db = get_db()
-    # return newest-first so front-end loop.first behaves predictably if you prepend interatives
+
     rows = db.execute("""
-        SELECT p.*, u.username FROM posts p
+        SELECT p.*, u.username
+        FROM posts p
         LEFT JOIN users u ON p.user_id = u.id
         ORDER BY p.id DESC
     """).fetchall()
+
     stack = Stack()
+
     for r in rows:
         caption_md = r["caption"] or ""
 
-        caption_html = bleach.clean(
-            markdown.markdown(
-                caption_md,
-                extensions=["fenced_code"]
-            ),
-            tags=["h1", "h2", "h3", "p", "strong", "em", "ul", "li", "hr", "code", "pre"],
-            strip=True
-        )
         post = {
             "id": r["id"],
             "user_id": r["user_id"],
             "title": r["title"],
+            # keep markdown ONLY if you need editing later
             "caption": caption_md,
-            "caption_html": caption_html,
+            # ALWAYS use this for display
+            "caption_html": md_to_safe_html(caption_md),
             "author": r["username"] or "Anonymous",
             "post_type": r["post_type"],
-            "up": r["up"] if r["up"] is not None else 0,
-            "down": r["down"] if r["down"] is not None else 0,
+            "up": r["up"] or 0,
+            "down": r["down"] or 0,
         }
 
-        # include latest comment (if any)
-        try:
-            latest = db.execute("SELECT comment, created_at FROM comments WHERE post_id=? ORDER BY id DESC LIMIT 1",
-                                (r["id"],)).fetchone()
-            if latest:
-                post["latest_comment"] = latest["comment"]
-                post["latest_comment_time"] = latest["created_at"]
-            else:
-                post["latest_comment"] = None
-                post["latest_comment_time"] = None
-        except Exception:
-            post["latest_comment"] = None
-            post["latest_comment_time"] = None
+        # latest comment
+        latest = db.execute(
+            "SELECT comment, created_at FROM comments WHERE post_id=? ORDER BY id DESC LIMIT 1",
+            (r["id"],)
+        ).fetchone()
 
-        # include attachments for this post
-        try:
-            rows = db.execute("SELECT id, filename, path FROM attachments WHERE post_id=? ORDER BY id ASC",
-                              (r["id"],)).fetchall()
-            atts = []
-            for a in rows:
-                atts.append({"id": a[0], "filename": a[1], "url": (a[2] if a[2].startswith('static/') else a[2])})
-            post["attachments"] = atts
-        except Exception:
-            post["attachments"] = []
+        post["latest_comment"] = latest["comment"] if latest else None
+        post["latest_comment_time"] = latest["created_at"] if latest else None
+
+        # attachments
+        atts = db.execute(
+            "SELECT id, filename, path FROM attachments WHERE post_id=? ORDER BY id ASC",
+            (r["id"],)
+        ).fetchall()
+
+        post["attachments"] = [
+            {
+                "id": a["id"],
+                "filename": a["filename"],
+                "url": a["path"]
+            } for a in atts
+        ]
 
         stack.push(post)
+
     return stack.to_list()
 
 
@@ -572,48 +576,37 @@ def home():
 @app.route("/search_posts")
 def search_posts():
     q = request.args.get("q", "").strip()
-
     db = get_db()
+
     rows = db.execute("""
-        SELECT id, title, caption 
+        SELECT id, title, caption
         FROM posts
         WHERE title LIKE ? OR caption LIKE ?
         ORDER BY id DESC
     """, (f"%{q}%", f"%{q}%")).fetchall()
 
     results = []
-    for r in rows:
-        cid = r["id"]
-        title = r["title"] or ""
-        caption = r["caption"] or ""
-        max_value = caption if caption.strip() else "None"
 
-        related_count = 0
-        if title.strip():
-            first_word = title.strip().split()[0]
-            rr = db.execute(
-                "SELECT COUNT(*) as c FROM posts WHERE (title LIKE ? OR caption LIKE ?) AND id != ?",
-                (f"%{first_word}%", f"%{first_word}%", cid)
-            ).fetchone()
-            related_count = rr["c"] if rr is not None else 0
+    for r in rows:
+        caption_md = r["caption"] or ""
 
         results.append({
-            "id": cid,
-            "title": title,
-            "caption": caption,
-            "max_value": max_value,
-            "related_count": related_count
+            "id": r["id"],
+            "title": r["title"] or "",
+            "caption_html": md_to_safe_html(caption_md),  # ✅ REQUIRED
+            "related_count": 0
         })
-    # attach latest comment for each search result
+
+    # attach latest comment
     for item in results:
-        try:
-            latest = db.execute("SELECT comment FROM comments WHERE post_id=? ORDER BY id DESC LIMIT 1",
-                                (item['id'],)).fetchone()
-            item['latest_comment'] = latest['comment'] if latest else None
-        except Exception:
-            item['latest_comment'] = None
+        latest = db.execute(
+            "SELECT comment FROM comments WHERE post_id=? ORDER BY id DESC LIMIT 1",
+            (item["id"],)
+        ).fetchone()
+        item["latest_comment"] = latest["comment"] if latest else None
 
     return jsonify(results)
+
 
 
 @app.route("/lectures", methods=["GET", "POST"])
@@ -709,20 +702,24 @@ def lectures():
 def lecture(id):
     caption_md = get_caption_from_db(id)
 
-    html = markdown.markdown(
-        caption_md or "",
-        extensions=["fenced_code", "tables"]
-    )
-
-    clean_html = bleach.clean(
-        html,
-        tags=["h1", "h2", "h3", "p", "strong", "em", "ul", "li", "hr", "code", "pre"],
+    caption_html = bleach.clean(
+        markdown.markdown(
+            caption_md,
+            extensions=["fenced_code", "tables"]
+        ),
+        tags=[
+            "h1","h2","h3",
+            "p","strong","em",
+            "ul","ol","li",
+            "hr",
+            "code","pre","blockquote"
+        ],
         strip=True
     )
 
     return render_template(
         "lecture.html",
-        caption=clean_html
+        caption_html=caption_html
     )
 
 
@@ -1988,7 +1985,6 @@ def reattach_subtree(token):
             return jsonify({'ok': True, 'svg': render_bt_forest_svg(bt_roots)})
 
     return jsonify({'ok': False, 'error': 'unknown_type'}), 400
-
 
 # RUN
 if __name__ == "__main__":

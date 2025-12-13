@@ -82,20 +82,22 @@ function displayResults(data) {
   data.forEach(post => {
     const bubble = document.createElement("div");
     bubble.className = "ai-response";
-    const maxVal = post.max_value ?? (post.caption ? post.caption : 'None');
-    const related = post.related_count ?? 0;
+
     bubble.innerHTML = `
       <strong>${post.title}</strong>
-      <br>
-      <span class="preserve">${post.caption}</span>
+      <div class="caption">${post.caption_html ?? ""}</div>
       <div class="search-subtitle">
-      Related Topics: ${related}${post.latest_comment ? ' &nbsp; • &nbsp; Latest: ' + (post.latest_comment) : ''}</div>
+        Related Topics: ${post.related_count ?? 0}
+        ${post.latest_comment ? ' • Latest: ' + post.latest_comment : ''}
+      </div>
     `.trim();
+
     feed.appendChild(bubble);
   });
 
   feed.scrollTop = feed.scrollHeight;
 }
+
 
 function performSearch() {
   const query = searchBar.value.trim();
