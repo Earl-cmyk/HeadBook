@@ -34,7 +34,7 @@ def md_to_safe_html(md_text: str) -> str:
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
-DATABASE = os.environ.get("DATABASE_PATH", "/var/data/app.db")
+DATABASE = os.environ.get("DATABASE_PATH", "feed.db")
 
 # -------------------------
 # OOP USER AUTHENTICATION
@@ -587,7 +587,9 @@ def build_svg(path=None):
 # -------------------------
 def get_db():
     if "db" not in g:
-        os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
+        dir_name = os.path.dirname(DATABASE)
+        if dir_name:  # only create folder if a directory exists
+            os.makedirs(dir_name, exist_ok=True)
         db = sqlite3.connect(DATABASE, timeout=30, check_same_thread=False)
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA journal_mode=WAL;")
@@ -605,8 +607,9 @@ def close_db(error=None):
         db.close()
 
 def init_db():
-    os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
-
+    dir_name = os.path.dirname(DATABASE)
+    if dir_name:  # only create folder if there is a directory
+        os.makedirs(dir_name, exist_ok=True)
     conn = sqlite3.connect(DATABASE)
     cur = conn.cursor()
 
@@ -1033,6 +1036,20 @@ def lectures():
             post["related_count"] = 0
 
     return render_template("lectures.html", posts=final_posts, current_user=get_current_user_context())
+
+
+def get_caption_from_db(id):
+    # Connect to your database
+    import sqlite3
+    conn = sqlite3.connect('feed.db')  # replace with your DB file
+    cursor = conn.cursor()
+
+    # Fetch caption
+    cursor.execute("SELECT caption FROM captions WHERE id = ?", (id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    return row[0] if row else None
 
 
 @app.route("/lecture/<int:id>")
