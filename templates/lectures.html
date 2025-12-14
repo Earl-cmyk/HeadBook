@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sorting-visualization.css') }}">
 <style>
   #bg-grid {
     position: fixed;
@@ -108,8 +109,140 @@
 </section>
 
   <!-- ========================= -->
-  <!-- INTERACTIVE DEMOS (ONLY ONCE) -->
+  <!-- SORTING ALGORITHMS -->
   <!-- ========================= -->
+  <!-- BUBBLE SORT -->
+  <article class="post-card">
+    <header>
+      <h3 class="post-title">Bubble Sort</h3>
+      <p class="post-caption">A simple comparison-based sorting algorithm that repeatedly steps through the list, compares adjacent elements and swaps them if they are in the wrong order.</p>
+    </header>
+
+    <div class="complexity">
+      <strong>Time Complexity:</strong> O(n²) in worst and average cases, O(n) in best case (already sorted)<br>
+      <strong>Space Complexity:</strong> O(1)
+    </div>
+
+    <div style="margin:10px 0;">
+      <button id="bubble-sort-start">Start Bubble Sort</button>
+      <button id="bubble-sort-reset">Reset</button>
+      <button id="bubble-sort-step">Step</button>
+    </div>
+
+    <div id="bubble-sort-display" style="padding:10px;border:1px solid #ccc;height:200px;position:relative;overflow:hidden;">
+      <div id="bubble-sort-bars" style="display:flex;height:100%;align-items:flex-end;gap:2px;"></div>
+    </div>
+
+    <div class="explanation" style="margin-top:15px;">
+      <h4>How it works:</h4>
+      <ol>
+        <li>Start from the first element, compare it with the next element.</li>
+        <li>If the first element is greater than the second, swap them.</li>
+        <li>Move to the next pair of elements and repeat step 2.</li>
+        <li>After each pass, the largest element will 'bubble up' to its correct position.</li>
+        <li>Repeat the process for the remaining elements.</li>
+      </ol>
+    </div>
+  </article>
+
+  <!-- MERGE SORT -->
+  <article class="post-card">
+    <header>
+      <h3 class="post-title">Merge Sort</h3>
+      <p class="post-caption">A stable, comparison-based, divide and conquer sorting algorithm that works by dividing the array into two halves, sorting them, and then merging them back together.</p>
+    </header>
+
+    <div class="complexity">
+      <strong>Time Complexity:</strong> O(n log n) in all cases<br>
+      <strong>Space Complexity:</strong> O(n) for the temporary array
+    </div>
+
+    <div style="margin:10px 0;">
+      <button id="merge-sort-start">Start Merge Sort</button>
+      <button id="merge-sort-reset">Reset</button>
+      <button id="merge-sort-step">Step</button>
+    </div>
+
+    <div id="merge-sort-display" style="padding:10px;border:1px solid #ccc;height:200px;position:relative;overflow:hidden;">
+      <div id="merge-sort-bars" style="display:flex;height:100%;align-items:flex-end;gap:2px;"></div>
+    </div>
+
+    <div class="explanation" style="margin-top:15px;">
+      <h4>How it works:</h4>
+      <ol>
+        <li>Divide the unsorted list into n sublists, each containing one element.</li>
+        <li>Repeatedly merge sublists to produce new sorted sublists until there is only one sublist remaining.</li>
+        <li>This final sublist is the sorted list.</li>
+      </ol>
+    </div>
+  </article>
+
+  <!-- SELECTION SORT -->
+  <article class="post-card">
+    <header>
+      <h3 class="post-title">Selection Sort</h3>
+      <p class="post-caption">A simple sorting algorithm that works by repeatedly finding the minimum element from the unsorted part and putting it at the beginning.</p>
+    </header>
+
+    <div class="complexity">
+      <strong>Time Complexity:</strong> O(n²) in all cases<br>
+      <strong>Space Complexity:</strong> O(1)
+    </div>
+
+    <div style="margin:10px 0;">
+      <button id="selection-sort-start">Start Selection Sort</button>
+      <button id="selection-sort-reset">Reset</button>
+      <button id="selection-sort-step">Step</button>
+    </div>
+
+    <div id="selection-sort-display" style="padding:10px;border:1px solid #ccc;height:200px;position:relative;overflow:hidden;">
+      <div id="selection-sort-bars" style="display:flex;height:100%;align-items:flex-end;gap:2px;"></div>
+    </div>
+
+    <div class="explanation" style="margin-top:15px;">
+      <h4>How it works:</h4>
+      <ol>
+        <li>Find the minimum element in the unsorted part of the array.</li>
+        <li>Swap it with the first element of the unsorted part.</li>
+        <li>Move the boundary of the unsorted part one element to the right.</li>
+        <li>Repeat until the entire array is sorted.</li>
+      </ol>
+    </div>
+  </article>
+
+  <!-- INSERTION SORT -->
+  <article class="post-card">
+    <header>
+      <h3 class="post-title">Insertion Sort</h3>
+      <p class="post-caption">A simple sorting algorithm that builds the final sorted array one item at a time by comparisons.</p>
+    </header>
+
+    <div class="complexity">
+      <strong>Time Complexity:</strong> O(n²) in worst and average cases, O(n) in best case (already sorted)<br>
+      <strong>Space Complexity:</strong> O(1)
+    </div>
+
+    <div style="margin:10px 0;">
+      <button id="insertion-sort-start">Start Insertion Sort</button>
+      <button id="insertion-sort-reset">Reset</button>
+      <button id="insertion-sort-step">Step</button>
+    </div>
+
+    <div id="insertion-sort-display" style="padding:10px;border:1px solid #ccc;height:200px;position:relative;overflow:hidden;">
+      <div id="insertion-sort-bars" style="display:flex;height:100%;align-items:flex-end;gap:2px;"></div>
+    </div>
+
+    <div class="explanation" style="margin-top:15px;">
+      <h4>How it works:</h4>
+      <ol>
+        <li>Start from the second element (consider the first element as sorted).</li>
+        <li>Compare the current element with the previous elements.</li>
+        <li>If the current element is smaller, move the larger elements one position up.</li>
+        <li>Insert the current element in its correct position.</li>
+        <li>Repeat for all elements in the array.</li>
+      </ol>
+    </div>
+  </article>
 
   <!-- QUEUE DEMO -->
   <article class="post-card">
@@ -279,6 +412,11 @@
   Deleting in 5 seconds...
   <button onclick="cancelDelete()">Cancel</button>
 </div>
+
+<!-- ===================================== -->
+<!-- Sorting Visualization JS             -->
+<!-- ===================================== -->
+<script src="{{ url_for('static', filename='js/sorting-visualization.js') }}"></script>
 
 <!-- ===================================== -->
 <!-- JAVASCRIPT FIXED                      -->
