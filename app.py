@@ -2365,6 +2365,11 @@ def atlas_route():
         "svg": atlas_graph.render_svg(path)
     })
 
+@app.route('/eleccirc')
+def eleccirc():
+    """Electrical circuit designer page."""
+    return render_template('eleccirc.html')
+
 # RUN
 if __name__ == "__main__":
     init_db()
