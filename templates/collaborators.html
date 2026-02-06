@@ -12,13 +12,21 @@
   </section>
 
   <section class="collab-grid">
-    <button id="creator" class="collab-btn">creator</button>
+    <button id="btn-lead-engineer" class="collab-btn">Lead Engineer</button>
+    <button id="btn-frontend-developer" class="collab-btn">Frontend Developer</button>
+    <button id="btn-backend-developer" class="collab-btn">Backend Developer</button>
+    <button id="btn-db-engineer" class="collab-btn">DB Engineer</button>
+    <button id="btn-tester" class="collab-btn">Tester</button>
   </section>
 
 <!-- Collaborator Modals -->
 <div id="collab-modals">
   {% set collaborators = [
-    {'id':'creator','role':'creator','name':'Earl Jhon D. Dimla','student_id':'2024-03779-MN-0','github':'Earl-cmyk','avatar':'earl.jpg'},
+    {'id':'lead-engineer','role':'Lead Engineer','name':'Earl Jhon D. Dimla','student_id':'2024-03779-MN-0','github':'Earl-cmyk','avatar':'earl.jpg'},
+    {'id':'frontend-developer','role':'Frontend Developer','name':'Baluyot, Franzen D.','student_id':'2024-00000-MN-5','github':'K4thars15','avatar':'franzen.jpg'},
+    {'id':'backend-developer','role':'Backend Developer','name':'Geraldin T. Tacleon','student_id':'2024-03174-MN-0','github':'hyarishin','avatar':'taki.jpg'},
+    {'id':'db-engineer','role':'DB Engineer','name':'Norberto P.','student_id':'2024-05229-MN-0','github':'dos1121','avatar':'bert.jpg'},
+    {'id':'tester','role':'Tester','name':'Brent Malik Liongson','student_id':'2024-00668-MN-0','github':'Asphyro','avatar':'brent.jpg'}
   ] %}
 
   {% for c in collaborators %}
